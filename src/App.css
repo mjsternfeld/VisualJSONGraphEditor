@@ -22,12 +22,7 @@ html, body {
     height: 60px;
 }
 
-.flow-container {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    background-color: red;;
-}
+
 
 .sidebar {
     width: 200px;
@@ -62,3 +57,36 @@ html, body {
     padding: 10px
 
 }
+
+
+
+
+.flow-container {
+    /* display: flex; */
+    /* border: 1px solid #001eff; */
+    width: 100%;
+    height: 100%;
+    /* background-color: red;*/
+}
+
+
+.custom-dialog-node, .custom-choice-node {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: white;
+}
+
+.custom-dialog-node {
+    background-color: lightblue;
+}
+
+.custom-choice-node {
+    background-color: lightgreen;
+}
+
+.dark .react-flow__node {
+    background: #777;
+    color: white;
+}
+
