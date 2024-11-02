@@ -4,14 +4,17 @@ import { Handle } from '@xyflow/react';
 
 const CustomChoiceNode = ({ data }) => {
     
-    const {choice} = data;
+    const {choice, selectedID} = data;
     console.log("DATA: " + JSON.stringify(data));
     console.log("DATA2: " + JSON.stringify(choice));
     
+    console.log("CHOICENODE: selectedID: " + selectedID + ", choice.parentId: " + `node-${choice.parentId}`);
+    const isSelected = selectedID == `node-${choice.parentId}`;
 
+    const backgroundColor = isSelected ? 'rgb(255,0,0)' : 'rgb(0, 73, 98)';
 
     return (
-        <div style={{ padding: 10, border: '1px dashed #222', borderRadius: 5, color:'white' }}>
+        <div style={{ padding: 10, border: '1px dashed #222', borderRadius: 5, color:'white', background: backgroundColor }}>
             <div>{choice.playerResponse}</div>
             
             {/* exactly one input */}

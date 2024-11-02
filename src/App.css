@@ -78,11 +78,11 @@ html, body {
 }
 
 .custom-dialog-node {
-    background-color: lightblue;
+    background-color: rgb(0, 73, 98);
 }
 
 .custom-choice-node {
-    background-color: lightgreen;
+    background-color: rgb(0, 112, 0);
 }
 
 .dark .react-flow__node {
@@ -92,7 +92,7 @@ html, body {
 
 
 .editor {
-    width: 200px;
+    width: 500px;
     height: 100vh;
     background-color: #00235f;
     color:white;

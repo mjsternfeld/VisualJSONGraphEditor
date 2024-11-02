@@ -5,7 +5,7 @@ import { Handle, useUpdateNodeInternals } from '@xyflow/react';
 
 const CustomDialogNode = ({ data }) => {
     
-    const { node, incomingChoices, outgoingChoices } = data;
+    const { node, incomingChoices, outgoingChoices, selectedID } = data;
     console.log("NODE: " + JSON.stringify(node));
     console.log("INCOMINGCHOICES: " + JSON.stringify(incomingChoices));
     console.log("OUTGOINGCHOICES: " + JSON.stringify(node.choices));
@@ -21,8 +21,13 @@ const CustomDialogNode = ({ data }) => {
         setDialog(node.npcDialog);
     }, [node, incomingChoices, updateNodeInternals]);
 
+
+    const isSelected = selectedID == `node-${node.id}`;
+    console.log("selectedID: " + selectedID + ", node.id: " + node.id + ", " + isSelected);
+    const backgroundColor = isSelected ? 'rgb(255,0,0)' : 'rgb(0, 112, 0)';
+
     return (
-        <div style={{ padding: 10, border: '1px solid #222', borderRadius: 5, color:'white' }}>
+        <div style={{ padding: 10, border: '1px solid #222', borderRadius: 5, color:'white', background: backgroundColor }}>
             <div>{dialog}</div>
             
             {/* Create source handle at the bottom */}

@@ -13,7 +13,7 @@ const App = () => {
     
     const [nodes, setNodes] = useState([]); // storing graph nodes and edges
     const [edges, setEdges] = useState([]); // storing graph nodes and edges
-    const [selectedNodeID, setSelectedNodeID] = useState(); //the current node to be edited (along with its choices)
+    const [selectedNodeID, setSelectedNodeID] = useState(-1); //the current node to be edited (along with its choices)
 
 
     const onNodesChange = (changes) => {
@@ -57,7 +57,8 @@ const App = () => {
     useEffect(() => {
         console.log("Updated nodes: ", JSON.stringify(nodes));
         console.log("Updated edges: ", JSON.stringify(edges));
-    }, [nodes, edges]);
+        console.log("Updated selectedNodeID: ", JSON.stringify(selectedNodeID));
+    }, [nodes, edges, selectedNodeID]);
 
 
     const handleImport = (event) => {
@@ -382,7 +383,13 @@ const App = () => {
                 </aside>
                 <div className="flow-container">
                     <ReactFlow 
-                        nodes={nodes}
+                        nodes={nodes.map(node => ({
+                            ...node, // Spread the existing node properties
+                            data: {
+                                ...node.data, // Spread existing data properties
+                                selectedID: selectedNodeID // Pass the selectedNodeID in the data object
+                            }
+                        }))}
                         edges={edges}
                         onLoad={onLoad}
                         style={{ width: '100%', height: '90vh' }}
@@ -400,7 +407,7 @@ const App = () => {
                         <Background/>
                     </ReactFlow>
                 </div>
-                {selectedNodeID && <aside className="editor">
+                {(selectedNodeID != -1) && <aside className="editor">
                     <h3>Node editor</h3>
                     <NodeEditor 
                         currentNodeId={selectedNodeID}
