@@ -13,7 +13,8 @@ const App = () => {
     
     const [nodes, setNodes] = useState([]); // storing graph nodes and edges
     const [edges, setEdges] = useState([]); // storing graph nodes and edges
-    
+    const [selectedNodeID, setSelectedNodeID] = useState(); //the current node to be edited (along with its choices)
+
 
     const onNodesChange = (changes) => {
         setNodes((nds) => applyNodeChanges(changes, nds));
@@ -82,13 +83,15 @@ const App = () => {
                         console.log("incoming choices: " + JSON.stringify(incomingChoices));
                         
                         const dialogNodeId = `node-${node.id}`; 
+                        const outgoingChoices = structuredClone(node.choices); //copy choices array because the original gets deleted later on
                         // Dialog node with dynamic choices and incoming connections
                         newNodes.push({
                             id: dialogNodeId,
                             type: 'dialogNode',
                             data: {
                                 node: node,
-                                incomingChoices: incomingChoices
+                                incomingChoices: incomingChoices,
+                                outgoingChoices: outgoingChoices
                             },
                             position: { x: Math.random() * 400, y: Math.random() * 400 },
                         });
@@ -154,6 +157,12 @@ const App = () => {
                     //set positions to avoid overlapping 
                     calculatePositions(newNodes);
                     
+                    //delete unnecessary (redundant) DialogNode attribute (the choices array), otherwise it gets confusing later
+                    newNodes.filter(nodeElement => nodeElement.type === "dialogNode")
+                            .forEach(n => {delete n.data.node.choices;});
+                    
+                    console.log("NEWNODES: " + JSON.stringify(newNodes));
+                    console.log("NEWEDGES: " + JSON.stringify(newEdges));
 
                     setNodes(newNodes);
                     setEdges(newEdges);
@@ -163,12 +172,6 @@ const App = () => {
             };
             reader.readAsText(file);
         }
-    };
-    
-    
-
-    const handleImportClick = () => {
-        fileInputRef.current.click();
     };
 
     const calculatePositions = (newNodes) => {
@@ -207,12 +210,10 @@ const App = () => {
             }
         });
     };
-    
-    
-    
-    
-    
-    
+
+    const handleImportClick = () => {
+        fileInputRef.current.click();
+    };
 
 
     const handleExport = () => {
@@ -231,6 +232,8 @@ const App = () => {
             delete node.type;
             delete node.incomingChoices;
             delete node.measured;
+            delete node.selected;
+            delete node.dragging;
             
             
             //get the nested data fields
@@ -239,9 +242,10 @@ const App = () => {
             
             //overwrite old choices with the updated ones from the ChoiceNoces
             //(the map operations are because the data is nested)
-            node.choices = choiceNodes.map(cn => cn.data).map(choice => choice.choice).filter(cnd => cnd.parentId === node.id); //fetch relevant choices (that are children of the current DialogNode)
-            
-
+            node.choices = choiceNodes
+                .map(cn => cn.data)
+                .map(choice => choice.choice)
+                .filter(cnd => cnd.parentId === node.id); //fetch relevant choices (that are children of the current DialogNode)
 
             delete node.data; //delete data at the end when we finished fetching the required nested attributes
 
@@ -259,6 +263,100 @@ const App = () => {
         a.click();
         URL.revokeObjectURL(url);
     };
+
+
+
+    const handleNodeClick = useCallback((event, node) => {
+        if(node.type === "dialogNode")
+            setSelectedNodeID(node.id);
+    
+    }, []);
+
+    const setNodesAndEdges = (localNodes, localEdges) => {
+        console.log("ASDF: " + localNodes.filter(n => n.type === "dialogNode").map(n => n.data.node.npcDialog));
+        setNodes(localNodes);
+        setEdges(localEdges);
+    }
+
+    const NodeEditor = ({currentNodeId, nodesArray, edgesArray, setNodesAndEdges}) => {
+        
+        const localNodesArray = structuredClone(nodesArray);
+        const localEdgesArray = structuredClone(edgesArray);
+        
+        const [NPCDialog, setNPCDialog] = useState(localNodesArray.find(n => n.id === currentNodeId).data.node.npcDialog);
+        
+        
+        
+
+        const currentChoices = localNodesArray
+            .filter(n => n.type === "choiceNode" //get all choices...
+                && n.data.parentId === currentNodeId); //...that are connected to the current node
+
+
+        function handleNPCDialogChange(event) {
+            const newDialog = event.target.value;
+            setNPCDialog(newDialog);
+            const updatedNode = localNodesArray.find(n => n.id === currentNodeId);
+            if (updatedNode)
+                updatedNode.data.node.npcDialog = newDialog;    
+            console.log(event.target.value + "," 
+                + updatedNode.data.node.npcDialog);
+        }
+
+        const saveChanges = () => {
+            //new updated nodes array
+            const updatedNodes = nodesArray.map(node => {
+                if (node.id === currentNodeId) {
+                    return { //overwrite the node with matching ID
+                        ...node,
+                        data: {
+                            ...node.data,
+                            node: {
+                                ...node.data.node,
+                                npcDialog: NPCDialog // Update here
+                            }
+                        }
+                    };
+                }
+                return node; //return unchanged (not selected) node
+            });
+
+            const updatedEdges = structuredClone(edgesArray);
+
+            setNodesAndEdges(updatedNodes, updatedEdges);
+        };
+        
+        return (
+            <div style={{ overflowY: 'auto' }}>
+                <p>Currently editing node with id: {currentNodeId}</p>
+                <table>
+                <tbody>
+                    <tr>
+                        <td>NPC Dialog:</td>
+                        <td>
+                            <input
+                            type="text"
+                            value={NPCDialog}
+                            onChange={handleNPCDialogChange}
+                            />
+                        </td>
+                    </tr>
+
+                </tbody>
+                </table>
+
+                <button>Add Player Response / Choice</button>    
+                <button onClick={saveChanges}>Save Changes</button>
+            </div>
+        )
+    }
+
+    const ChoiceEditor = ({}) => {
+
+    }
+
+
+
 
 
     return (
@@ -296,11 +394,21 @@ const App = () => {
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
                         fitView
+                        onNodeClick={handleNodeClick}
                     >
                         <Controls/>
                         <Background/>
                     </ReactFlow>
                 </div>
+                {selectedNodeID && <aside className="editor">
+                    <h3>Node editor</h3>
+                    <NodeEditor 
+                        currentNodeId={selectedNodeID}
+                        nodesArray={nodes}
+                        edgesArray={edges}
+                        setNodesAndEdges={setNodesAndEdges}
+                    />
+                </aside>}
             </div>
         </div>
     );

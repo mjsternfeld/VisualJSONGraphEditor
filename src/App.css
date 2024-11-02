@@ -90,3 +90,13 @@ html, body {
     color: white;
 }
 
+
+.editor {
+    width: 200px;
+    height: 100vh;
+    background-color: #00235f;
+    color:white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

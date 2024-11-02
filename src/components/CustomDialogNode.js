@@ -5,24 +5,25 @@ import { Handle, useUpdateNodeInternals } from '@xyflow/react';
 
 const CustomDialogNode = ({ data }) => {
     
-    const { node, incomingChoices } = data;
-    const outgoingChoices = node.choices;
+    const { node, incomingChoices, outgoingChoices } = data;
     console.log("NODE: " + JSON.stringify(node));
     console.log("INCOMINGCHOICES: " + JSON.stringify(incomingChoices));
     console.log("OUTGOINGCHOICES: " + JSON.stringify(node.choices));
     console.log("OUTGOINGCHOICES2: " + JSON.stringify(outgoingChoices));
     
+    const [dialog, setDialog] = useState(node.npcDialog);
 
     const updateNodeInternals = useUpdateNodeInternals();
 
     useEffect(() => {
         // Call updateNodeInternals to refresh handles when data or id changes
         updateNodeInternals(node.id);
+        setDialog(node.npcDialog);
     }, [node, incomingChoices, updateNodeInternals]);
 
     return (
         <div style={{ padding: 10, border: '1px solid #222', borderRadius: 5, color:'white' }}>
-            <div>{node.npcDialog}</div>
+            <div>{dialog}</div>
             
             {/* Create source handle at the bottom */}
             {/* Outgoing edges to choices */}
@@ -37,7 +38,7 @@ const CustomDialogNode = ({ data }) => {
                         type="source"
                         position="bottom"
                         id={handleId}
-                        style={{ left: `${(index + 1) * (100 / (node.choices.length + 1))}%` }} // Adjust left position dynamically
+                        style={{ left: `${(index + 1) * (100 / (outgoingChoices.length + 1))}%` }} // Adjust left position dynamically
                     />
                 )
 
