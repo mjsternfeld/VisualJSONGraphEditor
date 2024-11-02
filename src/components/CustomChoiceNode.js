@@ -1,10 +1,13 @@
 // CustomChoiceNode.js
 import React, {  useMemo, useEffect, useState, useRef, useCallback } from 'react';
-import { Handle } from '@xyflow/react';
+import { Handle, useUpdateNodeInternals } from '@xyflow/react';
 
 const CustomChoiceNode = ({ data }) => {
     
     const {choice, selectedID} = data;
+    const [dialog, setDialog] = useState(choice.playerResponse);
+
+
     console.log("DATA: " + JSON.stringify(data));
     console.log("DATA2: " + JSON.stringify(choice));
     
@@ -13,9 +16,17 @@ const CustomChoiceNode = ({ data }) => {
 
     const backgroundColor = isSelected ? 'rgb(255,0,0)' : 'rgb(0, 73, 98)';
 
+    const updateNodeInternals = useUpdateNodeInternals();
+    useEffect(() => {
+        updateNodeInternals(choice.choiceId);
+        setDialog(choice.playerResponse);
+    }, [choice, updateNodeInternals]);
+
+
+
     return (
         <div style={{ padding: 10, border: '1px dashed #222', borderRadius: 5, color:'white', background: backgroundColor }}>
-            <div>{choice.playerResponse}</div>
+            <div>{dialog}</div>
             
             {/* exactly one input */}
             <Handle

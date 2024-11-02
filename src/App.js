@@ -285,14 +285,14 @@ const App = () => {
         const localEdgesArray = structuredClone(edgesArray);
         
         const [NPCDialog, setNPCDialog] = useState(localNodesArray.find(n => n.id === currentNodeId).data.node.npcDialog);
-        
-        
+
         
 
         const currentChoices = localNodesArray
             .filter(n => n.type === "choiceNode" //get all choices...
-                && n.data.parentId === currentNodeId); //...that are connected to the current node
+                && `node-${n.data.choice.parentId}` == currentNodeId); //...that are connected to the current node
 
+        console.log("CURRENTCHOICESINNODEEDITOR: " + JSON.stringify(currentChoices));
 
         function handleNPCDialogChange(event) {
             const newDialog = event.target.value;
@@ -304,31 +304,58 @@ const App = () => {
                 + updatedNode.data.node.npcDialog);
         }
 
+        const handleChoiceChange = (choiceId, field, newValue) => {
+            const choiceNode = currentChoices.find(n => n.id === choiceId);
+            console.log("HANDLECHOICECHANGE: choiceNode = " + JSON.stringify(choiceNode));
+            if (choiceNode)
+                choiceNode.data.choice[field] = newValue; // Update specified field
+
+        }
+
+        const deleteChoice = (choiceId) =>{
+            //TODO: implement
+        }
+
         const saveChanges = () => {
-            //new updated nodes array
+            // Create a deep clone of nodesArray to apply updates
             const updatedNodes = nodesArray.map(node => {
                 if (node.id === currentNodeId) {
-                    return { //overwrite the node with matching ID
+                    // Update the main node's NPCDialog
+                    return {
                         ...node,
                         data: {
                             ...node.data,
                             node: {
                                 ...node.data.node,
-                                npcDialog: NPCDialog // Update here
+                                npcDialog: NPCDialog
+                            }
+                        }
+                    };
+                } else if (currentChoices.some(choice => choice.id === node.id)) {
+                    // Update choice nodes that match IDs in currentChoices
+                    const choiceNode = currentChoices.find(choice => choice.id === node.id);
+                    return {
+                        ...node,
+                        data: {
+                            ...node.data,
+                            choice: {
+                                ...node.data.choice,
+                                playerResponse: choiceNode.data.choice.playerResponse,
+                                companionReaction: choiceNode.data.choice.companionReaction
                             }
                         }
                     };
                 }
-                return node; //return unchanged (not selected) node
+                return node; // Return unchanged nodes
             });
-
+        
             const updatedEdges = structuredClone(edgesArray);
-
             setNodesAndEdges(updatedNodes, updatedEdges);
         };
         
+        
         return (
-            <div style={{ overflowY: 'auto' }}>
+            <div style={{ overflowY: 'auto', alignItems: 'center', display:'grid' }}>
                 <p>Currently editing node with id: {currentNodeId}</p>
                 <table>
                 <tbody>
@@ -342,18 +369,83 @@ const App = () => {
                             />
                         </td>
                     </tr>
-
+                    
                 </tbody>
+                
                 </table>
 
+                {currentChoices.map(choice => (
+                    <div>
+                        <ChoiceEditor 
+                            key={choice.id}
+                            data={choice.data}
+                            onChoiceChange={(field, newValue) => handleChoiceChange(choice.id, field, newValue)} 
+                        />
+                        <button onClick={() => deleteChoice(choice.id)} style={{ width: '100%' }}>
+                            Remove Player Response / Choice
+                        </button>
+                    </div>
+                ))}
+                <hr style={{width:'95%'}}></hr>
                 <button>Add Player Response / Choice</button>    
                 <button onClick={saveChanges}>Save Changes</button>
             </div>
         )
     }
 
-    const ChoiceEditor = ({}) => {
+    const ChoiceEditor = ({data, onChoiceChange}) => {
+        
+        const {choiceId, nextNodeID, playerResponse, companionReaction, dqc, dqt} = data.choice;
+        
+        const [playerResponseField, setPlayerResponseField] = useState(playerResponse);
+        const [companionReactionField, setCompanionReactionField] = useState(companionReaction);
 
+        function handlePlayerResponseFieldChange(event) {
+            const newPlayerResponse = event.target.value;
+            setPlayerResponseField(newPlayerResponse);
+            onChoiceChange("playerResponse", newPlayerResponse);
+        }
+
+        function handleCompanionReactionFieldChange(event){
+            const newCompanionReaction = event.target.value;
+            setCompanionReactionField(newCompanionReaction);
+            onChoiceChange("companionReaction", newCompanionReaction);
+        }
+
+        return (
+            <div>
+                <hr></hr>
+                <tr><td>choice id:</td><td>{choiceId}</td></tr>
+                <tr><td>nextNodeID:</td><td>{nextNodeID}</td></tr>
+                <tr>
+                    <td>Player response</td> {/* Display some property of the choice */}
+                    <td>
+                        <input
+                            style={{width:'95%'}}
+                            type="text" 
+                            value={playerResponseField} // Assuming each choice has a responseText
+                            onChange={handlePlayerResponseFieldChange}
+                        />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Companion reaction</td> {/* Display some property of the choice */}
+                    <td>
+                        <select
+                            style={{width:'100%'}}
+                            value={companionReactionField} // Assuming each choice has a responseText
+                            onChange={handleCompanionReactionFieldChange}
+                        >
+                            <option value="hate">hate</option>
+                            <option value="dislike">dislike</option>
+                            <option value="neutral">neutral</option>
+                            <option value="like">like</option>
+                            <option value="love">love</option>
+                        </select>
+                    </td>
+                </tr>
+            </div>
+        )
     }
 
 
@@ -363,7 +455,7 @@ const App = () => {
     return (
         <div className="app-container">
             <header className="header">
-                <h1>VisualJSONGraphEditor</h1>
+                <h1 style={{marginLeft: '20px'}}>VisualJSONGraphEditor</h1>
             </header>
             <div className="sidebar-and-flow-container">
                 <aside className="sidebar">
