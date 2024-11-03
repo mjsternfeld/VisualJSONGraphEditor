@@ -234,7 +234,7 @@ const App = () => {
             node.choices = choiceNodes
                 .map(cn => cn.data)
                 .map(choice => choice.choice)
-                .filter(cnd => cnd.parentId === node.id); //fetch relevant choices (that are children of the current DialogNode)
+                .filter(cnd => cnd.parentId == node.id); //fetch relevant choices (that are children of the current DialogNode)
 
             delete node.data; //delete data at the end when we finished fetching the required nested attributes
 
@@ -349,6 +349,16 @@ const App = () => {
                 }
 
                 choiceNode.data.choice[field] = newValue; // Update specified field
+
+                //fetch parent node and update its outgoingChoices array
+                const parentNode = localNodesArray
+                    .filter(node => node.type == "dialogNode")
+                    .find(node => node.data.node.id == choiceNode.data.choice.parentId);
+
+                parentNode.outgoingChoices
+                    .find(choice => choice.choiceId == choiceNode.data.choice.choiceId)
+                    [field] = newValue;
+
             }
         }
 
@@ -445,6 +455,12 @@ const App = () => {
                 position: { x: Math.random() * 400, y: Math.random() * 400 },
             };
             localNodesArray.push(newNode);
+
+            // Update the parent node's outgoing choices
+            const parentNode = localNodesArray
+                .filter(n => n.type == "dialogNode")
+                .find(node => node.data.node.id == parentId);
+            parentNode.data.outgoingChoices.push(newNode.choice);
 
             const newEdge = {
                 id: `DtC-${parentId}-${newId}`,
