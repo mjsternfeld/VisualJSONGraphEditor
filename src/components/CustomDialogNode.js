@@ -28,45 +28,20 @@ const CustomDialogNode = ({ data }) => {
 
     return (
         <div style={{ padding: 10, border: '1px solid #222', borderRadius: 5, color:'white', background: backgroundColor }}>
+            <div>{node.id}</div>
             <div>{dialog}</div>
             
             {/* Create source handle at the bottom */}
-            {/* Outgoing edges to choices */}
-            {outgoingChoices.map((choice, index) => {
-                
-                const handleId  = `source-node-${node.id}-to-choice-${choice.choiceId}`;
-                console.log("Creating handle with id: " + handleId);
-
-                return (
-                    <Handle
-                        key={handleId}
-                        type="source"
-                        position="bottom"
-                        id={handleId}
-                        style={{ left: `${(index + 1) * (100 / (outgoingChoices.length + 1))}%` }} // Adjust left position dynamically
-                    />
-                )
-
-            })}
+            <Handle
+                type="source"
+                position="bottom"
+            />
             
-            {/* Create target handles at the top */}
-            {/* Incoming edges from choices */}
-            {incomingChoices.map((choice, index) =>  {
-                
-                const handleId  = `target-choice-${choice.choiceId}-to-node-${node.id}`;
-                console.log("Creating handle with id: " + handleId);
-
-                return (
-                    <Handle
-                        key={handleId}
-                        type="target"
-                        position="top"
-                        id={handleId}
-                        style={{ left: `${(index + 1) * (100 / (incomingChoices.length + 1))}%`, transform: 'translateX(-50%)' }} // Centered at the bottom
-                    />
-                )
-
-            })}
+            {/* Create target handle at the top */}
+            <Handle
+                type="target"
+                position="top"
+            />
         </div>
     );
 };

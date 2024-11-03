@@ -69,6 +69,20 @@ html, body {
     /* background-color: red;*/
 }
 
+.react-flow__controls {
+    background-color: #333; /* Dark background for dark mode */
+    border-color: #555; /* Subtle border color for dark mode */
+}
+
+.react-flow__controls-button {
+    color: #fff; /* Icon color */
+    background-color: transparent; /* Transparent button background */
+}
+
+.react-flow__controls-button:hover {
+    background-color: #444; /* Slightly darker background on hover */
+    color: #fff;
+}
 
 .custom-dialog-node, .custom-choice-node {
     padding: 10px;

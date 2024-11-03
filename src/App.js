@@ -111,20 +111,14 @@ const App = () => {
                             });
     
                             // Edge from dialog node to choice node
-                            const sourceHandleDtC = `source-node-${node.id}-to-choice-${choice.choiceId}`;
-                            const targetHandleDtC = `${choice.choiceId}-target`;
-
+                            
                             console.log("Pushing edge with source: " + dialogNodeId 
-                                + " and sourceHandle: " + sourceHandleDtC 
-                                + " and target: " + choiceNodeId 
-                                + " and targetHandle: " + targetHandleDtC);
+                                + " and target: " + choiceNodeId);
                             
                             newEdges.push({
                                 id: `DtC-${node.id}-${choice.choiceId}`,
                                 source: dialogNodeId,
-                                sourceHandle: sourceHandleDtC,
                                 target: choiceNodeId,
-                                targetHandle: targetHandleDtC,
                                 type: 'simplebezier',
                                 animated: true,
                                 style: {}
@@ -134,20 +128,14 @@ const App = () => {
                             if (choice.nextNodeID !== undefined) {
                                 
                                 const nextDialogNodeId = `node-${choice.nextNodeID}`;
-                                const sourceHandleCtD = `${choice.choiceId}-source`;
-                                const targetHandleCtD = `target-choice-${choice.choiceId}-to-node-${choice.nextNodeID}`;
-
+                                
                                 console.log("Pushing edge with source: " + choiceNodeId 
-                                    + " and sourceHandle: " + sourceHandleCtD 
-                                    + " and target: " + nextDialogNodeId 
-                                    + " and targetHandle: " + targetHandleCtD);
+                                    + " and target: " + nextDialogNodeId);
 
                                 newEdges.push({
                                     id: `CtD-${choiceNodeId}-${nextDialogNodeId}`,
                                     source: choiceNodeId,
-                                    sourceHandle: sourceHandleCtD,
                                     target: nextDialogNodeId,
-                                    targetHandle: targetHandleCtD,
                                     type: 'simplebezier',
                                     animated: true
                                 });
@@ -281,8 +269,8 @@ const App = () => {
 
     const NodeEditor = ({currentNodeId, nodesArray, edgesArray, setNodesAndEdges}) => {
         
-        const localNodesArray = structuredClone(nodesArray);
-        const localEdgesArray = structuredClone(edgesArray);
+        let localNodesArray = structuredClone(nodesArray);
+        let localEdgesArray = structuredClone(edgesArray);
         
         const [NPCDialog, setNPCDialog] = useState(localNodesArray.find(n => n.id === currentNodeId).data.node.npcDialog);
 
@@ -313,7 +301,61 @@ const App = () => {
         }
 
         const deleteChoice = (choiceId) =>{
-            //TODO: implement
+            console.log("nodes array " + localNodesArray);
+
+            console.log("DELETECHOICE: previous nodes: " + JSON.stringify(localNodesArray));
+            console.log("DELETECHOICE: previous edges: " + JSON.stringify(localEdgesArray));
+
+            const deletedChoice = localNodesArray.find(n => n.id === choiceId);
+            console.log("DELETECHOICE: deletedChoice: " + JSON.stringify(deletedChoice));
+
+            if (!deletedChoice) {
+                console.log("Choice not found");
+                return;
+            }
+
+            const parentId = deletedChoice.data.choice.parentId;
+            
+            const nextNodeId = deletedChoice.data.choice.nextNodeID; 
+
+            // Remove edges related to this choice
+            localEdgesArray = localEdgesArray.filter(edge => 
+                edge.id !== `DtC-${parentId}-${choiceId}` && 
+                edge.id !== `CtD-choice-${choiceId}-node-${nextNodeId}`
+            );
+            
+            // Update the parent node's outgoing choices
+            const parentNode = localNodesArray
+                .filter(n => n.type == "dialogNode")
+                .find(node => node.data.node.id == parentId);
+            console.log("choiceId: " + choiceId);
+            parentNode.data.outgoingChoices = parentNode.data.outgoingChoices.filter(
+                choice => `choice-${choice.choiceId}` != choiceId
+            );
+            console.log("updated outgoing choices: " + JSON.stringify(parentNode.data.outgoingChoices)); 
+
+            // Update the next node's incoming choices
+            if(!deletedChoice.data.choice.isExit){
+                
+                const nextNode = localNodesArray
+                    .filter(n => n.type === "dialogNode")
+                    .find(node => node.data.node.id === nextNodeId);
+                nextNode.data.incomingChoices = nextNode.data.incomingChoices.filter(
+                    choice => `choice-${choice.choiceId}` != choiceId
+                );
+
+            }
+
+            //remove the choice itself
+            localNodesArray = localNodesArray.filter(n => n.id !== choiceId);
+
+
+            console.log("DELETECHOICE: current nodes: " + JSON.stringify(localNodesArray));
+            console.log("DELETECHOICE: current edges: " + JSON.stringify(localEdgesArray));
+
+
+            // Update nodes and edges with changes
+            setNodesAndEdges(localNodesArray, localEdgesArray);
         }
 
         const saveChanges = () => {
@@ -341,7 +383,8 @@ const App = () => {
                             choice: {
                                 ...node.data.choice,
                                 playerResponse: choiceNode.data.choice.playerResponse,
-                                companionReaction: choiceNode.data.choice.companionReaction
+                                companionReaction: choiceNode.data.choice.companionReaction,
+                                isExit: choiceNode.data.choice.isExit
                             }
                         }
                     };
@@ -349,7 +392,7 @@ const App = () => {
                 return node; // Return unchanged nodes
             });
         
-            const updatedEdges = structuredClone(edgesArray);
+            const updatedEdges = structuredClone(localEdgesArray);
             setNodesAndEdges(updatedNodes, updatedEdges);
         };
         
@@ -391,14 +434,16 @@ const App = () => {
                 <button onClick={saveChanges}>Save Changes</button>
             </div>
         )
-    }
+    };
 
     const ChoiceEditor = ({data, onChoiceChange}) => {
         
-        const {choiceId, nextNodeID, playerResponse, companionReaction, dqc, dqt} = data.choice;
+        const {choiceId, nextNodeID, playerResponse, companionReaction, dqc, dqt, isExit} = data.choice;
         
         const [playerResponseField, setPlayerResponseField] = useState(playerResponse);
         const [companionReactionField, setCompanionReactionField] = useState(companionReaction);
+        const [isExitField, setisExitField] = useState(isExit);
+        
 
         function handlePlayerResponseFieldChange(event) {
             const newPlayerResponse = event.target.value;
@@ -412,6 +457,12 @@ const App = () => {
             onChoiceChange("companionReaction", newCompanionReaction);
         }
 
+        function handleIsExitFieldChange(event){
+            const newIsExit = event.target.checked;
+            setisExitField(newIsExit);
+            onChoiceChange("isExit", newIsExit);
+        }
+
         return (
             <div>
                 <hr></hr>
@@ -423,7 +474,7 @@ const App = () => {
                         <input
                             style={{width:'95%'}}
                             type="text" 
-                            value={playerResponseField} // Assuming each choice has a responseText
+                            value={playerResponseField}
                             onChange={handlePlayerResponseFieldChange}
                         />
                     </td>
@@ -433,7 +484,7 @@ const App = () => {
                     <td>
                         <select
                             style={{width:'100%'}}
-                            value={companionReactionField} // Assuming each choice has a responseText
+                            value={companionReactionField}
                             onChange={handleCompanionReactionFieldChange}
                         >
                             <option value="hate">hate</option>
@@ -444,9 +495,20 @@ const App = () => {
                         </select>
                     </td>
                 </tr>
+                <tr>
+                    <td>isExit?</td> {/* Display some property of the choice */}
+                    <td>
+                        <input 
+                            type='checkbox'
+                            checked={isExitField}
+                            onChange={handleIsExitFieldChange}
+                        />
+                        
+                    </td>
+                </tr>
             </div>
-        )
-    }
+        );
+    };
 
 
 
@@ -494,6 +556,7 @@ const App = () => {
                         onConnect={onConnect}
                         fitView
                         onNodeClick={handleNodeClick}
+                        connectOnClick={false} //don't allow user to create new edges manually
                     >
                         <Controls/>
                         <Background/>

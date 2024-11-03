@@ -32,7 +32,6 @@ const CustomChoiceNode = ({ data }) => {
             <Handle
                 type="target"
                 position="top"
-                id={`${choice.choiceId}-target`}
                 style={{ left: '50%', transform: 'translateX(-50%)' }} // Centered at the bottom
             />
             
@@ -41,7 +40,6 @@ const CustomChoiceNode = ({ data }) => {
                 <Handle
                     type="source"
                     position="bottom"
-                    id={`${choice.choiceId}-source`}
                     style={{ left: '50%', transform: 'translateX(-50%)' }} // Centered at the top
                 />
             )}
