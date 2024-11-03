@@ -254,6 +254,37 @@ const App = () => {
     };
 
 
+    const handleCreateNode = useCallback(() => {
+
+        setNodes((prevNodes) => {
+            // Find the maximum existing node ID and increment it for the new node
+            const maxId = Math.max(
+                0,
+                ...prevNodes
+                    .filter(node => node.type === "dialogNode")
+                    .map(node => node.data.node.id)
+            );
+            const newId = maxId + 1;
+    
+            console.log("creating new node with id " + newId);
+    
+            // Create the new node
+            const newNode = {
+                id: `node-${newId}`,
+                type: "dialogNode",
+                data: {
+                    node: { id: newId, npcDialog: "Enter your NPC dialog here" },
+                    incomingChoices: [],
+                    outgoingChoices: [],
+                },
+                position: { x: Math.random() * 400, y: Math.random() * 400 },
+            };
+    
+            // Return the new nodes array with the added node
+            return [...prevNodes, newNode];
+        });
+
+    }, []);
 
     const handleNodeClick = useCallback((event, node) => {
         if(node.type === "dialogNode")
@@ -269,6 +300,9 @@ const App = () => {
 
     const NodeEditor = ({currentNodeId, nodesArray, edgesArray, setNodesAndEdges}) => {
         
+        //TODO: add choice button functionality, setting next node ID (with error handling or creating a new node)
+        //TODO: delete dialogNodes, not just choices
+
         let localNodesArray = structuredClone(nodesArray);
         let localEdgesArray = structuredClone(edgesArray);
         
@@ -293,11 +327,29 @@ const App = () => {
         }
 
         const handleChoiceChange = (choiceId, field, newValue) => {
+            
             const choiceNode = currentChoices.find(n => n.id === choiceId);
             console.log("HANDLECHOICECHANGE: choiceNode = " + JSON.stringify(choiceNode));
-            if (choiceNode)
-                choiceNode.data.choice[field] = newValue; // Update specified field
+            if (choiceNode){
+                
+                if(field == "nextNodeID"){ //'rewire' the node
+                    //remove old edge to old nextNodeID
+                    localEdgesArray = localEdgesArray.filter(edge => edge.id != `CtD-${choiceId}-node-${choiceNode.data.choice.nextNodeID}`);
 
+                    //add new edge to new dialogNode
+                    localEdgesArray.push({
+                        id: `CtD-${choiceId}-${newValue}`,
+                        source: `${choiceId}`,
+                        target: `node-${newValue}`,
+                        type: 'simplebezier',
+                        animated: true,
+                        style: {}
+                    });
+
+                }
+
+                choiceNode.data.choice[field] = newValue; // Update specified field
+            }
         }
 
         const deleteChoice = (choiceId) =>{
@@ -358,6 +410,63 @@ const App = () => {
             setNodesAndEdges(localNodesArray, localEdgesArray);
         }
 
+
+        const handleAddChoice = () => {
+
+            const parentId = currentNodeId.split('-')[1];
+            
+            const maxId = Math.max(
+                0,
+                ...localNodesArray
+                    .filter(node => node.type == "choiceNode")
+                    .map(node => node.data.choice.choiceId)
+            );
+
+            const newId = maxId + 1;
+            
+            console.log("creating new node with id " + newId);
+    
+            const newNode = {
+                id: `choice-${newId}`,
+                type: "choiceNode",
+                data: {
+                    choice: { 
+                        choiceId: newId,
+                        nextNodeID: -1,
+                        playerResponse: "Enter your player dialog here",
+                        seen: false,
+                        parentId: parentId,
+                        companionReaction: "neutral",
+                        dqt: {},
+                        dqc: {},
+                        isExit: false
+                    },
+                },
+                position: { x: Math.random() * 400, y: Math.random() * 400 },
+            };
+            localNodesArray.push(newNode);
+
+            const newEdge = {
+                id: `DtC-${parentId}-${newId}`,
+                source: `node-${parentId}`,
+                target: `choice-${newId}`,
+                type: "simplebezier",
+                animated: true,
+                style: {}
+            };
+            localEdgesArray.push(newEdge);
+
+            localNodesArray
+                .filter(node => node.type == "dialogNode")
+                .find(node => node.id == currentNodeId).data.outgoingChoices.push(newNode.data.choice);
+
+
+            setNodesAndEdges(localNodesArray, localEdgesArray);
+            
+
+        }
+
+
         const saveChanges = () => {
             // Create a deep clone of nodesArray to apply updates
             const updatedNodes = nodesArray.map(node => {
@@ -384,7 +493,8 @@ const App = () => {
                                 ...node.data.choice,
                                 playerResponse: choiceNode.data.choice.playerResponse,
                                 companionReaction: choiceNode.data.choice.companionReaction,
-                                isExit: choiceNode.data.choice.isExit
+                                isExit: choiceNode.data.choice.isExit,
+                                nextNodeID: choiceNode.data.choice.nextNodeID
                             }
                         }
                     };
@@ -430,7 +540,7 @@ const App = () => {
                     </div>
                 ))}
                 <hr style={{width:'95%'}}></hr>
-                <button>Add Player Response / Choice</button>    
+                <button onClick={() => handleAddChoice()}>Add Player Response / Choice</button>    
                 <button onClick={saveChanges}>Save Changes</button>
             </div>
         )
@@ -443,6 +553,7 @@ const App = () => {
         const [playerResponseField, setPlayerResponseField] = useState(playerResponse);
         const [companionReactionField, setCompanionReactionField] = useState(companionReaction);
         const [isExitField, setisExitField] = useState(isExit);
+        const [nextNodeIdField, setNextNodeIdField] = useState(nextNodeID);
         
 
         function handlePlayerResponseFieldChange(event) {
@@ -463,11 +574,28 @@ const App = () => {
             onChoiceChange("isExit", newIsExit);
         }
 
+        function handleNextNodeIdFieldChange(event){
+            const newNextNodeId = event.target.value;
+            setNextNodeIdField(newNextNodeId);
+            onChoiceChange("nextNodeID", newNextNodeId);
+        }
+
+        
+
         return (
             <div>
                 <hr></hr>
                 <tr><td>choice id:</td><td>{choiceId}</td></tr>
-                <tr><td>nextNodeID:</td><td>{nextNodeID}</td></tr>
+                <tr>
+                    <td>nextNodeID:</td>
+                    <td>
+                        <input 
+                            type="number"
+                            value={nextNodeIdField}
+                            onChange={handleNextNodeIdFieldChange}
+                        />
+                    </td>
+                </tr>
                 <tr>
                     <td>Player response</td> {/* Display some property of the choice */}
                     <td>
@@ -533,6 +661,10 @@ const App = () => {
                     />
                     <button className="sidebar-buttons-1" onClick={handleExport}>
                         Export JSON
+                    </button>
+                    <hr style={{width:'100%', marginTop:'20px'}}/>
+                    <button className='sidebar-buttons-1' onClick={handleCreateNode}>
+                        Create NPC line
                     </button>
                 </aside>
                 <div className="flow-container">
