@@ -11,8 +11,8 @@ import './App.css';
 const App = () => {
     const fileInputRef = useRef(null); 
     
-    const [nodes, setNodes] = useState([]); // storing graph nodes and edges
-    const [edges, setEdges] = useState([]); // storing graph nodes and edges
+    const [nodes, setNodes] = useState([]); //storing graph nodes and edges
+    const [edges, setEdges] = useState([]); //storing graph nodes and edges
     const [selectedNodeID, setSelectedNodeID] = useState(-1); //the current node to be edited (along with its choices)
 
 
@@ -24,7 +24,7 @@ const App = () => {
         setNodes((nds) =>
             nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n))
         );
-        console.log(`Node ${node.id} new position:`, node.position);
+        //console.log(`Node ${node.id} new position:`, node.position);
     };
     
     const onEdgesChange = useCallback(
@@ -37,10 +37,9 @@ const App = () => {
         []
     );
 
-
     const onLoad = (reactFlowInstance) => {
         reactFlowInstance.fitView();
-        console.log('React Flow loaded:', reactFlowInstance);
+        //console.log('React Flow loaded:', reactFlowInstance);
     };
 
     const nodeTypes = useMemo(() => ({
@@ -52,12 +51,10 @@ const App = () => {
         edgeTypes: CustomEdge
     }), []);
 
-
-
     useEffect(() => {
-        console.log("Updated nodes: ", JSON.stringify(nodes));
-        console.log("Updated edges: ", JSON.stringify(edges));
-        console.log("Updated selectedNodeID: ", JSON.stringify(selectedNodeID));
+        //console.log("Updated nodes: ", JSON.stringify(nodes));
+        //console.log("Updated edges: ", JSON.stringify(edges));
+        //console.log("Updated selectedNodeID: ", JSON.stringify(selectedNodeID));
     }, [nodes, edges, selectedNodeID]);
 
 
@@ -81,11 +78,11 @@ const App = () => {
                             .flatMap(n => n.choices)
                             .filter(choice => choice.nextNodeID === node.id && node.id !== 0);
                         
-                        console.log("incoming choices: " + JSON.stringify(incomingChoices));
+                        //console.log("incoming choices: " + JSON.stringify(incomingChoices));
                         
                         const dialogNodeId = `node-${node.id}`; 
                         const outgoingChoices = structuredClone(node.choices); //copy choices array because the original gets deleted later on
-                        // Dialog node with dynamic choices and incoming connections
+                        
                         newNodes.push({
                             id: dialogNodeId,
                             type: 'dialogNode',
@@ -97,7 +94,7 @@ const App = () => {
                             position: { x: Math.random() * 400, y: Math.random() * 400 },
                         });
     
-                        // Create a choice node for each choice in the dialog node
+                        //create a choice node for each choice in the dialog node
                         node.choices.forEach((choice, index) => {
                             const choiceNodeId = `choice-${choice.choiceId}`;
                             newNodes.push({
@@ -110,10 +107,8 @@ const App = () => {
                                 position: { x: Math.random() * 400, y: Math.random() * 400 },
                             });
     
-                            // Edge from dialog node to choice node
-                            
-                            console.log("Pushing edge with source: " + dialogNodeId 
-                                + " and target: " + choiceNodeId);
+                            //edge from dialog node to choice node (DtC)
+                            //console.log("Pushing edge with source: " + dialogNodeId + " and target: " + choiceNodeId);
                             
                             newEdges.push({
                                 id: `DtC-${node.id}-${choice.choiceId}`,
@@ -124,14 +119,11 @@ const App = () => {
                                 style: {}
                             });
     
-                            // Edge from choice node to next dialog node
+                            //edge from choice node to next dialog node (CtD)
                             if (choice.nextNodeID !== undefined) {
                                 
                                 const nextDialogNodeId = `node-${choice.nextNodeID}`;
-                                
-                                console.log("Pushing edge with source: " + choiceNodeId 
-                                    + " and target: " + nextDialogNodeId);
-
+                                //console.log("Pushing edge with source: " + choiceNodeId + " and target: " + nextDialogNodeId);
                                 newEdges.push({
                                     id: `CtD-${choiceNodeId}-${nextDialogNodeId}`,
                                     source: choiceNodeId,
@@ -150,8 +142,8 @@ const App = () => {
                     newNodes.filter(nodeElement => nodeElement.type === "dialogNode")
                             .forEach(n => {delete n.data.node.choices;});
                     
-                    console.log("NEWNODES: " + JSON.stringify(newNodes));
-                    console.log("NEWEDGES: " + JSON.stringify(newEdges));
+                    //console.log("NEWNODES: " + JSON.stringify(newNodes));
+                    //console.log("NEWEDGES: " + JSON.stringify(newEdges));
 
                     setNodes(newNodes);
                     setEdges(newEdges);
@@ -164,33 +156,30 @@ const App = () => {
     };
 
     const calculatePositions = (newNodes) => {
-        const xSpacing = 700; // Horizontal spacing between dialog nodes
-        const ySpacing = 300;  // Vertical spacing between levels
+        const xSpacing = 700;
+        const ySpacing = 300;
         const dialogNodes = newNodes.filter(node => node.type === "dialogNode");
         const choiceNodes = newNodes.filter(node => node.type === "choiceNode");
         
         let currentX = 0;
         let currentY = 0;
     
-        // Position dialog nodes in a grid-like structure
         dialogNodes.forEach((node, index) => {
-            node.position = { x: currentX, y: currentY };  // Directly set position on node
+            node.position = { x: currentX, y: currentY }; 
             currentX += xSpacing;
-            if (index > 0 && index % 3 === 0) { // Move to the next row every 3 nodes
+            if (index > 0 && index % 3 === 0) {
                 currentX = 0;
                 currentY += ySpacing;
             }
         });
     
-        // Position choice nodes relative to their parent dialog node
         choiceNodes.forEach((node, index) => {
             const parentId = node.data.choice.parentId;
             const parentNode = newNodes.find(n => n.id === `node-${parentId}`);
             
-            // If the parent position is defined, position the choice node near it
             if (parentNode && parentNode.position) {
-                const offsetX = (index % 2 === 0 ? -xSpacing / 3 : xSpacing / 3);  // Alternate choice node X positioning
-                const offsetY = ySpacing / 2; // Place choice nodes slightly below the parent
+                const offsetX = (index % 2 === 0 ? -xSpacing / 3 : xSpacing / 3);
+                const offsetY = ySpacing / 2; 
     
                 node.position = {
                     x: parentNode.position.x + offsetX,
@@ -206,58 +195,51 @@ const App = () => {
 
 
     const handleExport = () => {
-        
         const exportCopy = nodes;
         const dialogNodes = exportCopy.filter(node => node.type === "dialogNode");
         const choiceNodes = exportCopy.filter(node => node.type === "choiceNode");
-        console.log("CHOICENODES: " + JSON.stringify(choiceNodes));
-
-        //delete unnecessary attributes that are just there for ReactFlow
-        //also add the nested data back to the top level
+    
+        // Process dialog nodes
         dialogNodes.forEach(node => {
-                    
-            //delete unnecessary attributes
+            // Delete unnecessary attributes
             delete node.position;
             delete node.type;
             delete node.incomingChoices;
             delete node.measured;
             delete node.selected;
             delete node.dragging;
-            
-            
-            //get the nested data fields
+    
+            // Get the nested data fields
             node.id = node.data.node.id;
             node.npcDialog = node.data.node.npcDialog;
-            
-            //overwrite old choices with the updated ones from the ChoiceNoces
-            //(the map operations are because the data is nested)
+    
+            // Overwrite old choices with the updated ones from the ChoiceNodes
             node.choices = choiceNodes
                 .map(cn => cn.data)
                 .map(choice => choice.choice)
-                .filter(cnd => cnd.parentId == node.id); //fetch relevant choices (that are children of the current DialogNode)
-
-            delete node.data; //delete data at the end when we finished fetching the required nested attributes
-
+                .filter(cnd => cnd.parentId == node.id); // Fetch relevant choices (that are children of the current DialogNode)
+    
+            delete node.data; // Delete data at the end when we finished fetching the required nested attributes
         });
-
-        
-
-        const json = JSON.stringify({ dialogNodes }, null, 2);
+    
+        // Change here: use "nodes" instead of "dialogNodes"
+        const json = JSON.stringify({ nodes: dialogNodes }, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-
+    
         const a = document.createElement('a');
         a.href = url;
         a.download = 'dialogTree.json';
         a.click();
         URL.revokeObjectURL(url);
     };
+    
 
 
     const handleCreateNode = useCallback(() => {
 
         setNodes((prevNodes) => {
-            // Find the maximum existing node ID and increment it for the new node
+            //find the highest ID and increment it for the new node
             const maxId = Math.max(
                 0,
                 ...prevNodes
@@ -266,9 +248,8 @@ const App = () => {
             );
             const newId = maxId + 1;
     
-            console.log("creating new node with id " + newId);
+            //console.log("creating new node with id " + newId);
     
-            // Create the new node
             const newNode = {
                 id: `node-${newId}`,
                 type: "dialogNode",
@@ -280,7 +261,7 @@ const App = () => {
                 position: { x: Math.random() * 400, y: Math.random() * 400 },
             };
     
-            // Return the new nodes array with the added node
+            //return new nodes array with added node
             return [...prevNodes, newNode];
         });
 
@@ -289,32 +270,27 @@ const App = () => {
     const handleNodeClick = useCallback((event, node) => {
         if(node.type === "dialogNode")
             setSelectedNodeID(node.id);
-    
     }, []);
 
     const setNodesAndEdges = (localNodes, localEdges) => {
-        console.log("ASDF: " + localNodes.filter(n => n.type === "dialogNode").map(n => n.data.node.npcDialog));
+        //console.log("ASDF: " + localNodes.filter(n => n.type === "dialogNode").map(n => n.data.node.npcDialog));
         setNodes(localNodes);
         setEdges(localEdges);
     }
 
-    const NodeEditor = ({currentNodeId, nodesArray, edgesArray, setNodesAndEdges}) => {
+    const NodeEditor = ({currentNodeId, nodesArray, edgesArray, setNodesAndEdges, setSelectedNodeID}) => {
         
-        //TODO: add choice button functionality, setting next node ID (with error handling or creating a new node)
-        //TODO: delete dialogNodes, not just choices
 
         let localNodesArray = structuredClone(nodesArray);
         let localEdgesArray = structuredClone(edgesArray);
         
         const [NPCDialog, setNPCDialog] = useState(localNodesArray.find(n => n.id === currentNodeId).data.node.npcDialog);
 
-        
-
         const currentChoices = localNodesArray
             .filter(n => n.type === "choiceNode" //get all choices...
                 && `node-${n.data.choice.parentId}` == currentNodeId); //...that are connected to the current node
 
-        console.log("CURRENTCHOICESINNODEEDITOR: " + JSON.stringify(currentChoices));
+        //console.log("CURRENTCHOICESINNODEEDITOR: " + JSON.stringify(currentChoices));
 
         function handleNPCDialogChange(event) {
             const newDialog = event.target.value;
@@ -322,16 +298,13 @@ const App = () => {
             const updatedNode = localNodesArray.find(n => n.id === currentNodeId);
             if (updatedNode)
                 updatedNode.data.node.npcDialog = newDialog;    
-            console.log(event.target.value + "," 
-                + updatedNode.data.node.npcDialog);
+            //console.log(event.target.value + "," + updatedNode.data.node.npcDialog);
         }
 
         const handleChoiceChange = (choiceId, field, newValue) => {
-            
             const choiceNode = currentChoices.find(n => n.id === choiceId);
-            console.log("HANDLECHOICECHANGE: choiceNode = " + JSON.stringify(choiceNode));
+            //console.log("HANDLECHOICECHANGE: choiceNode = " + JSON.stringify(choiceNode));
             if (choiceNode){
-                
                 if(field == "nextNodeID"){ //'rewire' the node
                     //remove old edge to old nextNodeID
                     localEdgesArray = localEdgesArray.filter(edge => edge.id != `CtD-${choiceId}-node-${choiceNode.data.choice.nextNodeID}`);
@@ -345,97 +318,72 @@ const App = () => {
                         animated: true,
                         style: {}
                     });
-
                 }
-
-                choiceNode.data.choice[field] = newValue; // Update specified field
-
-                //fetch parent node and update its outgoingChoices array
-                const parentNode = localNodesArray
-                    .filter(node => node.type == "dialogNode")
-                    .find(node => node.data.node.id == choiceNode.data.choice.parentId);
-
-                parentNode.outgoingChoices
-                    .find(choice => choice.choiceId == choiceNode.data.choice.choiceId)
-                    [field] = newValue;
-
+                choiceNode.data.choice[field] = newValue;
             }
         }
 
         const deleteChoice = (choiceId) =>{
-            console.log("nodes array " + localNodesArray);
-
-            console.log("DELETECHOICE: previous nodes: " + JSON.stringify(localNodesArray));
-            console.log("DELETECHOICE: previous edges: " + JSON.stringify(localEdgesArray));
-
+            //console.log("nodes array " + localNodesArray);
+            //console.log("DELETECHOICE: previous nodes: " + JSON.stringify(localNodesArray));
+            //console.log("DELETECHOICE: previous edges: " + JSON.stringify(localEdgesArray));
             const deletedChoice = localNodesArray.find(n => n.id === choiceId);
-            console.log("DELETECHOICE: deletedChoice: " + JSON.stringify(deletedChoice));
-
+            //console.log("DELETECHOICE: deletedChoice: " + JSON.stringify(deletedChoice));
             if (!deletedChoice) {
-                console.log("Choice not found");
+                //console.log("Choice not found");
                 return;
             }
-
             const parentId = deletedChoice.data.choice.parentId;
-            
             const nextNodeId = deletedChoice.data.choice.nextNodeID; 
 
-            // Remove edges related to this choice
+            //remove the two edges related to this choice
             localEdgesArray = localEdgesArray.filter(edge => 
                 edge.id !== `DtC-${parentId}-${choiceId}` && 
                 edge.id !== `CtD-choice-${choiceId}-node-${nextNodeId}`
             );
             
-            // Update the parent node's outgoing choices
+            //update parent node's outgoing choices
             const parentNode = localNodesArray
                 .filter(n => n.type == "dialogNode")
                 .find(node => node.data.node.id == parentId);
-            console.log("choiceId: " + choiceId);
+            //console.log("choiceId: " + choiceId);
+            //console.log("parentNode: " + JSON.stringify(parentNode));
             parentNode.data.outgoingChoices = parentNode.data.outgoingChoices.filter(
                 choice => `choice-${choice.choiceId}` != choiceId
             );
-            console.log("updated outgoing choices: " + JSON.stringify(parentNode.data.outgoingChoices)); 
+            //console.log("updated outgoing choices: " + JSON.stringify(parentNode.data.outgoingChoices)); 
 
-            // Update the next node's incoming choices
+            //update next node's incoming choices
             if(!deletedChoice.data.choice.isExit){
-                
                 const nextNode = localNodesArray
-                    .filter(n => n.type === "dialogNode")
-                    .find(node => node.data.node.id === nextNodeId);
-                nextNode.data.incomingChoices = nextNode.data.incomingChoices.filter(
-                    choice => `choice-${choice.choiceId}` != choiceId
-                );
-
+                    .filter(n => n.type == "dialogNode")
+                    .find(node => node.data.node.id == nextNodeId);
+                if(nextNode)
+                    nextNode.data.incomingChoices = nextNode.data.incomingChoices.filter(
+                        choice => `choice-${choice.choiceId}` != choiceId  
+                    );
             }
 
             //remove the choice itself
             localNodesArray = localNodesArray.filter(n => n.id !== choiceId);
 
+            //console.log("DELETECHOICE: current nodes: " + JSON.stringify(localNodesArray));
+            //console.log("DELETECHOICE: current edges: " + JSON.stringify(localEdgesArray));
 
-            console.log("DELETECHOICE: current nodes: " + JSON.stringify(localNodesArray));
-            console.log("DELETECHOICE: current edges: " + JSON.stringify(localEdgesArray));
-
-
-            // Update nodes and edges with changes
+            //update nodes and edges with changes
             setNodesAndEdges(localNodesArray, localEdgesArray);
         }
 
-
         const handleAddChoice = () => {
-
             const parentId = currentNodeId.split('-')[1];
-            
             const maxId = Math.max(
                 0,
                 ...localNodesArray
                     .filter(node => node.type == "choiceNode")
                     .map(node => node.data.choice.choiceId)
             );
-
             const newId = maxId + 1;
-            
-            console.log("creating new node with id " + newId);
-    
+            //console.log("creating new node with id " + newId);
             const newNode = {
                 id: `choice-${newId}`,
                 type: "choiceNode",
@@ -456,12 +404,6 @@ const App = () => {
             };
             localNodesArray.push(newNode);
 
-            // Update the parent node's outgoing choices
-            const parentNode = localNodesArray
-                .filter(n => n.type == "dialogNode")
-                .find(node => node.data.node.id == parentId);
-            parentNode.data.outgoingChoices.push(newNode.choice);
-
             const newEdge = {
                 id: `DtC-${parentId}-${newId}`,
                 source: `node-${parentId}`,
@@ -475,19 +417,55 @@ const App = () => {
             localNodesArray
                 .filter(node => node.type == "dialogNode")
                 .find(node => node.id == currentNodeId).data.outgoingChoices.push(newNode.data.choice);
+            
+            setNodesAndEdges(localNodesArray, localEdgesArray);
+        }
 
+        const handleDeleteNode = () => {
+
+            
+            //fetch choices
+            const choicesToBeDeleted = localNodesArray
+            .filter(n => n.type == "choiceNode")
+            .filter(choice => `node-${choice.data.choice.parentId}` == currentNodeId); 
+         
+            //delete choice nodes and its edges
+            choicesToBeDeleted.forEach(choice => {
+                deleteChoice(choice.data.choice.choiceId);
+            });
+
+            //delete incoming edges to current node, and update nextNodeIDs of their sources 
+            const prevChoicesToBeDeleted = localNodesArray
+                .filter(n => n.type == "choiceNode")
+                .filter(choice => choice.data.choice.nextNodeID == currentNodeId);
+            prevChoicesToBeDeleted.forEach(choice => {
+                choice.data.choice.nextNodeID = -1;
+            });
+
+            localEdgesArray = localEdgesArray.filter(edge => edge.target != `node-${currentNodeId}`
+            );
+
+            //delete outgoing choices
+            const edgesToBeDeleted = localNodesArray
+                .filter(n => n.type == "choiceNode")
+                .filter(choice => `node-${choice.data.choice.parentId}` == currentNodeId); 
+
+            localNodesArray = localNodesArray.filter(n => 
+                !edgesToBeDeleted.includes(n));
+
+            localNodesArray = localNodesArray.filter(node => node.id != currentNodeId);
+            setSelectedNodeID(-1);
 
             setNodesAndEdges(localNodesArray, localEdgesArray);
-            
+
 
         }
 
-
         const saveChanges = () => {
-            // Create a deep clone of nodesArray to apply updates
+            //create a deep clone of nodesArray to apply updates
             const updatedNodes = nodesArray.map(node => {
                 if (node.id === currentNodeId) {
-                    // Update the main node's NPCDialog
+                    //update main node's NPCDialog
                     return {
                         ...node,
                         data: {
@@ -499,7 +477,7 @@ const App = () => {
                         }
                     };
                 } else if (currentChoices.some(choice => choice.id === node.id)) {
-                    // Update choice nodes that match IDs in currentChoices
+                    //update choice nodes that match IDs in currentChoices
                     const choiceNode = currentChoices.find(choice => choice.id === node.id);
                     return {
                         ...node,
@@ -515,7 +493,7 @@ const App = () => {
                         }
                     };
                 }
-                return node; // Return unchanged nodes
+                return node; //return unchanged nodes
             });
         
             const updatedEdges = structuredClone(localEdgesArray);
@@ -524,12 +502,12 @@ const App = () => {
         
         
         return (
-            <div style={{ overflowY: 'auto', alignItems: 'center', display:'grid' }}>
+            <div style={{ alignItems: 'center', display:'grid' }}>
                 <p>Currently editing node with id: {currentNodeId}</p>
                 <table>
                 <tbody>
                     <tr>
-                        <td>NPC Dialog:</td>
+                        <td style={{width: '50%'}}>NPC Dialog:</td>
                         <td>
                             <input
                             type="text"
@@ -550,14 +528,16 @@ const App = () => {
                             data={choice.data}
                             onChoiceChange={(field, newValue) => handleChoiceChange(choice.id, field, newValue)} 
                         />
-                        <button onClick={() => deleteChoice(choice.id)} style={{ width: '100%' }}>
+                        <button className='choice-editor-button' onClick={() => deleteChoice(choice.id)} style={{ width: '100%' }}>
                             Remove Player Response / Choice
                         </button>
                     </div>
                 ))}
-                <hr style={{width:'95%'}}></hr>
-                <button onClick={() => handleAddChoice()}>Add Player Response / Choice</button>    
-                <button onClick={saveChanges}>Save Changes</button>
+                <hr style={{width:'99%'}}></hr>
+                <button className='node-editor-button' onClick={() => handleAddChoice()}>Add Player Response / Choice</button>    
+                <hr style={{width:'99%'}}></hr>
+                <button className='node-editor-button' onClick={() => handleDeleteNode()}>Delete Node</button>
+                <button className='node-editor-button' onClick={saveChanges}>Save Changes</button>
             </div>
         )
     };
@@ -595,8 +575,6 @@ const App = () => {
             setNextNodeIdField(newNextNodeId);
             onChoiceChange("nextNodeID", newNextNodeId);
         }
-
-        
 
         return (
             <div>
@@ -647,16 +625,11 @@ const App = () => {
                             checked={isExitField}
                             onChange={handleIsExitFieldChange}
                         />
-                        
                     </td>
                 </tr>
             </div>
         );
     };
-
-
-
-
 
     return (
         <div className="app-container">
@@ -686,10 +659,11 @@ const App = () => {
                 <div className="flow-container">
                     <ReactFlow 
                         nodes={nodes.map(node => ({
-                            ...node, // Spread the existing node properties
+                            ...node, //spread existing node properties
                             data: {
-                                ...node.data, // Spread existing data properties
-                                selectedID: selectedNodeID // Pass the selectedNodeID in the data object
+                                ...node.data, //spread existing data properties
+                                selectedID: selectedNodeID //pass selectedNodeID in the data object
+                                //this is so we can notify the node that it's selected, for highlighting
                             }
                         }))}
                         edges={edges}
@@ -717,6 +691,7 @@ const App = () => {
                         nodesArray={nodes}
                         edgesArray={edges}
                         setNodesAndEdges={setNodesAndEdges}
+                        setSelectedNodeID={setSelectedNodeID}
                     />
                 </aside>}
             </div>

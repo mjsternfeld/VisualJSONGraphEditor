@@ -1,34 +1,47 @@
 const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-    mode: 'development',
     entry: './src/index.js',
     output: {
+        path: path.resolve(__dirname, 'build'),
         filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist'),
     },
     module: {
         rules: [
             {
-                test: /\.js$/, // Transpile JS files
+                test: /\.(js|jsx)$/,
                 exclude: /node_modules/,
                 use: {
                     loader: 'babel-loader',
-                },
+                    options: {
+                        presets: ['@babel/preset-env', '@babel/preset-react']
+                    }
+                }
             },
             {
-                test: /\.css$/, // Add this rule for CSS files
-                use: ['style-loader', 'css-loader'], // Loaders for CSS
-            },
-        ],
+                test: /\.css$/,
+                use: ['style-loader', 'css-loader'],
+            }
+        ]
     },
-    devServer: {
-        static: {
-            directory: path.join(__dirname, 'public'), // or wherever your static files are located
-        },
-        port: 3000,
+    performance: {
+        maxEntrypointSize: 10000000000,
+        maxAssetSize: 100000000000, 
     },
     resolve: {
-        extensions: ['.js', '.jsx'], // Add .jsx if you're using it
+        extensions: ['.js', '.jsx'],
     },
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: './public/index.html', // Direct path to index.html
+            filename: 'index.html',
+        }),
+    ],
+    devServer: {
+        static: path.join(__dirname, 'public'),
+        compress: true,
+        port: 3000,
+    },
+    mode: 'production'
 };
