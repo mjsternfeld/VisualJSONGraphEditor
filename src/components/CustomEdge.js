@@ -1,3 +1,4 @@
+//this component connects nodes (both player-to-NPC and NPC-to-player connections)
 import React from 'react';
 import { getBezierPath } from 'react-flow-renderer';
 
@@ -24,8 +25,8 @@ const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, style = {}, marker
             id={id}
             style={{
                 ...style,
-                stroke: '#4a90e2',       //color
-                strokeWidth: 2.5,        //thicker edge
+                stroke: '#4a90e2',
+                strokeWidth: 2.5,
                 opacity: 0.8,
             }}
             d={path}

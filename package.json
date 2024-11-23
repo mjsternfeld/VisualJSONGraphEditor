@@ -10,6 +10,7 @@
     "build": "webpack --config webpack.config.js",
     "start-electron": "electron .",
     "build:win": "electron-builder --win --x64",
+    "build:linux": "electron-builder --linux --x64",
     "dist": "electron-builder"
   },
   "keywords": [],

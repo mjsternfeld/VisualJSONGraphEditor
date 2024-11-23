@@ -11,8 +11,8 @@ import './App.css';
 const App = () => {
     const fileInputRef = useRef(null); 
     
-    const [nodes, setNodes] = useState([]); //storing graph nodes and edges
-    const [edges, setEdges] = useState([]); //storing graph nodes and edges
+    const [nodes, setNodes] = useState([]); //storing graph nodes (both NPC and Player nodes)
+    const [edges, setEdges] = useState([]); //storing edges
     const [selectedNodeID, setSelectedNodeID] = useState(-1); //the current node to be edited (along with its choices)
 
 
@@ -20,7 +20,7 @@ const App = () => {
         setNodes((nds) => applyNodeChanges(changes, nds));
     };
 
-    const onNodeDragStop = (event, node) => {
+    const onNodeDragStop = (_event, node) => {
         setNodes((nds) =>
             nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n))
         );
@@ -42,11 +42,11 @@ const App = () => {
         //console.log('React Flow loaded:', reactFlowInstance);
     };
 
+    //set the custom node and edge types to be used by ReactFlow
     const nodeTypes = useMemo(() => ({
         dialogNode: CustomDialogNode,
         choiceNode: CustomChoiceNode,
     }), []);
-
     const edgeTypes = useMemo(() => ({
         edgeTypes: CustomEdge
     }), []);
@@ -58,34 +58,39 @@ const App = () => {
     }, [nodes, edges, selectedNodeID]);
 
 
+    //this function is used to import a .json file and generate nodes and edges based on its contents
     const handleImport = (event) => {
-        const file = event.target.files[0];
+        const file = event.target.files[0]; //parse file selected from file explorer dialog
         if (file) {
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const dialogTree = JSON.parse(e.target.result);
-                    if (!dialogTree.nodes || !Array.isArray(dialogTree.nodes))
+                    if (!dialogTree.nodes || !Array.isArray(dialogTree.nodes)) //error handling for incorrect json structure
                         throw new Error("Imported JSON does not contain a valid 'nodes' array.");
     
+                    //start out with empty arrays that are populated during the file parsing
                     const newNodes = [];
                     const newEdges = [];
     
+                    //iterate over NPC dialog nodes (the contents of the "nodes" array)
                     dialogTree.nodes.forEach((node) => {
-                        //prepare incomingChoices for dynamic target handles
-                        //these are the choice nodes that lead to the current dialog node
+
+                        //fetch the player choice nodes that lead to the current NPC dialog node
                         const incomingChoices = dialogTree.nodes
                             .flatMap(n => n.choices)
                             .filter(choice => choice.nextNodeID === node.id && node.id !== 0);
                         
+
                         //console.log("incoming choices: " + JSON.stringify(incomingChoices));
                         
-                        const dialogNodeId = `node-${node.id}`; 
+                        const dialogNodeId = `node-${node.id}`; //construct id string (this is to differentiate the NPC nodes from the Player nodes) 
                         const outgoingChoices = structuredClone(node.choices); //copy choices array because the original gets deleted later on
                         
+                        //add the current (NPC) node along with the new fields that weren't contained in the original json file (incomingChoices, dialogNodeId)
                         newNodes.push({
                             id: dialogNodeId,
-                            type: 'dialogNode',
+                            type: 'dialogNode', //node type for reactflow
                             data: {
                                 node: node,
                                 incomingChoices: incomingChoices,
@@ -94,22 +99,23 @@ const App = () => {
                             position: { x: Math.random() * 400, y: Math.random() * 400 },
                         });
     
-                        //create a choice node for each choice in the dialog node
-                        node.choices.forEach((choice, index) => {
-                            const choiceNodeId = `choice-${choice.choiceId}`;
+                        //iterate over available player responses to the current NPC dialog node
+                        //create a choice node for each outgoing choice (player response) in the dialog node
+                        node.choices.forEach((choice) => {
+                            const choiceNodeId = `choice-${choice.choiceId}`; //create string id to differentiate from NPC node IDs
                             newNodes.push({
                                 id: choiceNodeId,
-                                type: 'choiceNode',
+                                type: 'choiceNode', //node type for reactflow
                                 data: { choice: { 
-                                    ...choice,       // Spread the existing choice data
-                                    parentId: node.id // Add the parentId attribute
+                                    ...choice, //keep existing attributes
+                                    parentId: node.id //add the parentId attribute (the ID of the NPC node this player node is a response to)
                                 } },
                                 position: { x: Math.random() * 400, y: Math.random() * 400 },
                             });
     
-                            //edge from dialog node to choice node (DtC)
+
+                            //create edge from NPC dialog node to player choice node (DtC)
                             //console.log("Pushing edge with source: " + dialogNodeId + " and target: " + choiceNodeId);
-                            
                             newEdges.push({
                                 id: `DtC-${node.id}-${choice.choiceId}`,
                                 source: dialogNodeId,
@@ -120,7 +126,7 @@ const App = () => {
                             });
     
                             //edge from choice node to next dialog node (CtD)
-                            if (choice.nextNodeID !== undefined) {
+                            if (choice.nextNodeID !== undefined) { //check if there even is an outgoing edge
                                 
                                 const nextDialogNodeId = `node-${choice.nextNodeID}`;
                                 //console.log("Pushing edge with source: " + choiceNodeId + " and target: " + nextDialogNodeId);
@@ -138,7 +144,7 @@ const App = () => {
                     //set positions to avoid overlapping 
                     calculatePositions(newNodes);
                     
-                    //delete unnecessary (redundant) DialogNode attribute (the choices array), otherwise it gets confusing later
+                    //delete unnecessary (redundant) DialogNode attribute (the choices array), otherwise it gets confusing later when the array would have to be overwritten for the export
                     newNodes.filter(nodeElement => nodeElement.type === "dialogNode")
                             .forEach(n => {delete n.data.node.choices;});
                     
@@ -155,6 +161,7 @@ const App = () => {
         }
     };
 
+    //this updates the nodes' positions to (mostly) avoid them from overlapping and for better readability 
     const calculatePositions = (newNodes) => {
         const xSpacing = 700;
         const ySpacing = 300;
@@ -189,19 +196,23 @@ const App = () => {
         });
     };
 
+    //opens a file explorer dialog to select a json file to import
     const handleImportClick = () => {
         fileInputRef.current.click();
     };
 
 
+    //create a json file following the required structure from all the current nodes and edges
     const handleExport = () => {
+
         const exportCopy = nodes;
+        //fetch NPC dialog and player choice nodes separately
         const dialogNodes = exportCopy.filter(node => node.type === "dialogNode");
         const choiceNodes = exportCopy.filter(node => node.type === "choiceNode");
     
-        // Process dialog nodes
+        //iterate over NPC dialog nodes
         dialogNodes.forEach(node => {
-            // Delete unnecessary attributes
+            //delete unnecessary attributes (they were only relevant for reactflow)
             delete node.position;
             delete node.type;
             delete node.incomingChoices;
@@ -209,20 +220,21 @@ const App = () => {
             delete node.selected;
             delete node.dragging;
     
-            // Get the nested data fields
+            //get the nested data fields to get them to the correct level / depth in the output json
             node.id = node.data.node.id;
             node.npcDialog = node.data.node.npcDialog;
     
-            // Overwrite old choices with the updated ones from the ChoiceNodes
+            //overwrite old choices with the updated ones from the ChoiceNodes
+            //the outgoing choices array, i.e., the possible player responses
             node.choices = choiceNodes
                 .map(cn => cn.data)
                 .map(choice => choice.choice)
-                .filter(cnd => cnd.parentId == node.id); // Fetch relevant choices (that are children of the current DialogNode)
+                .filter(cnd => cnd.parentId == node.id); //fetch relevant choices (that are children of the current DialogNode)
     
-            delete node.data; // Delete data at the end when we finished fetching the required nested attributes
+            delete node.data; //delete data once all its required fields have been extracted
         });
     
-        // Change here: use "nodes" instead of "dialogNodes"
+        //create output json containing a "nodes" array with the final output nodes
         const json = JSON.stringify({ nodes: dialogNodes }, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -236,6 +248,7 @@ const App = () => {
     
 
 
+    //this method creates a new NPC dialog node (called from the "Create NPC line" button in the UI)
     const handleCreateNode = useCallback(() => {
 
         setNodes((prevNodes) => {
@@ -267,7 +280,9 @@ const App = () => {
 
     }, []);
 
-    const handleNodeClick = useCallback((event, node) => {
+    //this is called when the user selects a dialog node for editing by clicking it
+    //sets the selected ID on all the NPC dialog nodes, which in turn highlights the selected node and its player response nodes
+    const handleNodeClick = useCallback((_event, node) => {
         if(node.type === "dialogNode")
             setSelectedNodeID(node.id);
     }, []);
@@ -278,20 +293,25 @@ const App = () => {
         setEdges(localEdges);
     }
 
+
+    //this component is used to display a selected node's fields (editable) and ChoiceEditor components for the outgoing player response nodes
     const NodeEditor = ({currentNodeId, nodesArray, edgesArray, setNodesAndEdges, setSelectedNodeID}) => {
         
-
+        //local copies of nodes and edges so changes are only applied on confirmation
         let localNodesArray = structuredClone(nodesArray);
         let localEdgesArray = structuredClone(edgesArray);
         
+        //current NPC dialog node which is displayed and editable in this NodeEditor
         const [NPCDialog, setNPCDialog] = useState(localNodesArray.find(n => n.id === currentNodeId).data.node.npcDialog);
 
+        //the outgoing player choice nodes of the current NPC node
         const currentChoices = localNodesArray
             .filter(n => n.type === "choiceNode" //get all choices...
                 && `node-${n.data.choice.parentId}` == currentNodeId); //...that are connected to the current node
 
         //console.log("CURRENTCHOICESINNODEEDITOR: " + JSON.stringify(currentChoices));
 
+        //updates the "NPCDialog" string in the local copy of the current node, as well as in the localNodesArray 
         function handleNPCDialogChange(event) {
             const newDialog = event.target.value;
             setNPCDialog(newDialog);
@@ -301,11 +321,14 @@ const App = () => {
             //console.log(event.target.value + "," + updatedNode.data.node.npcDialog);
         }
 
+        //generic function to update fields in choice nodes (called from the choice editor)
         const handleChoiceChange = (choiceId, field, newValue) => {
-            const choiceNode = currentChoices.find(n => n.id === choiceId);
+            const choiceNode = currentChoices.find(n => n.id === choiceId); //fetch choice node
             //console.log("HANDLECHOICECHANGE: choiceNode = " + JSON.stringify(choiceNode));
             if (choiceNode){
-                if(field == "nextNodeID"){ //'rewire' the node
+                
+                //special edge case, 'rewire' the node: if the updated field is the nextNodeID, that means we need to adjust the node's outgoing edge
+                if(field == "nextNodeID"){ 
                     //remove old edge to old nextNodeID
                     localEdgesArray = localEdgesArray.filter(edge => edge.id != `CtD-${choiceId}-node-${choiceNode.data.choice.nextNodeID}`);
 
@@ -319,10 +342,11 @@ const App = () => {
                         style: {}
                     });
                 }
-                choiceNode.data.choice[field] = newValue;
+                choiceNode.data.choice[field] = newValue; //update the field in the choice node
             }
         }
 
+        //deletes a choice / player response node from this NPC dialog node
         const deleteChoice = (choiceId) =>{
             //console.log("nodes array " + localNodesArray);
             //console.log("DELETECHOICE: previous nodes: " + JSON.stringify(localNodesArray));
@@ -333,6 +357,8 @@ const App = () => {
                 //console.log("Choice not found");
                 return;
             }
+
+            //fetch IDs of previous / next node for edge removal 
             const parentId = deletedChoice.data.choice.parentId;
             const nextNodeId = deletedChoice.data.choice.nextNodeID; 
 
@@ -353,8 +379,8 @@ const App = () => {
             );
             //console.log("updated outgoing choices: " + JSON.stringify(parentNode.data.outgoingChoices)); 
 
-            //update next node's incoming choices
-            if(!deletedChoice.data.choice.isExit){
+            //update next node's incoming choices (remove this choice since it no longer leads to that node)
+            if(!deletedChoice.data.choice.isExit){ //if it's an exit node, it has no next NPC dialog node
                 const nextNode = localNodesArray
                     .filter(n => n.type == "dialogNode")
                     .find(node => node.data.node.id == nextNodeId);
@@ -371,19 +397,24 @@ const App = () => {
             //console.log("DELETECHOICE: current edges: " + JSON.stringify(localEdgesArray));
 
             //update nodes and edges with changes
-            setNodesAndEdges(localNodesArray, localEdgesArray);
+            setNodesAndEdges(localNodesArray, localEdgesArray); //here we update the "real" arrays, because otherwise there's no visual feedback for choice deletion
         }
 
+        //this creates a new player response / choice node (a possible response to this NPC dialog node)
         const handleAddChoice = () => {
-            const parentId = currentNodeId.split('-')[1];
-            const maxId = Math.max(
+
+            const parentId = currentNodeId.split('-')[1]; //fetch the int ID from the string ID (since that string has the pattern 'node-${intId}')
+            
+            const maxId = Math.max( //determine the choiceID (int)
                 0,
                 ...localNodesArray
                     .filter(node => node.type == "choiceNode")
                     .map(node => node.data.choice.choiceId)
             );
             const newId = maxId + 1;
+
             //console.log("creating new node with id " + newId);
+            //create new choice with default values
             const newNode = {
                 id: `choice-${newId}`,
                 type: "choiceNode",
@@ -404,6 +435,7 @@ const App = () => {
             };
             localNodesArray.push(newNode);
 
+            //create edge connecting the NPC dialog node to the newly created player choice node
             const newEdge = {
                 id: `DtC-${parentId}-${newId}`,
                 source: `node-${parentId}`,
@@ -414,16 +446,16 @@ const App = () => {
             };
             localEdgesArray.push(newEdge);
 
-            localNodesArray
+            localNodesArray //add the new player choice node to the npc dialog node's outgoing choices
                 .filter(node => node.type == "dialogNode")
                 .find(node => node.id == currentNodeId).data.outgoingChoices.push(newNode.data.choice);
             
-            setNodesAndEdges(localNodesArray, localEdgesArray);
+            setNodesAndEdges(localNodesArray, localEdgesArray); //immediately updating the "real" arrays because otherwise there's no visual feedback
         }
 
+        //deletes the entire NPC dialog node and its outgoing player response nodes
         const handleDeleteNode = () => {
 
-            
             //fetch choices
             const choicesToBeDeleted = localNodesArray
             .filter(n => n.type == "choiceNode")
@@ -456,23 +488,23 @@ const App = () => {
             localNodesArray = localNodesArray.filter(node => node.id != currentNodeId);
             setSelectedNodeID(-1);
 
-            setNodesAndEdges(localNodesArray, localEdgesArray);
-
+            setNodesAndEdges(localNodesArray, localEdgesArray); //immediately update "real" arrays, otherwise there's no visual feedback
 
         }
 
+        //applies the changes to the fields of the currently selected node, as well as the player response / choice nodes 
         const saveChanges = () => {
             //create a deep clone of nodesArray to apply updates
             const updatedNodes = nodesArray.map(node => {
                 if (node.id === currentNodeId) {
                     //update main node's NPCDialog
                     return {
-                        ...node,
+                        ...node, //keep other fields the same
                         data: {
                             ...node.data,
                             node: {
-                                ...node.data.node,
-                                npcDialog: NPCDialog
+                                ...node.data.node, //keep other data fields the same
+                                npcDialog: NPCDialog //update NPCDialog field
                             }
                         }
                     };
@@ -484,7 +516,7 @@ const App = () => {
                         data: {
                             ...node.data,
                             choice: {
-                                ...node.data.choice,
+                                ...node.data.choice, //keep the other fields, while updating all the field editable in the ChoiceEditor
                                 playerResponse: choiceNode.data.choice.playerResponse,
                                 companionReaction: choiceNode.data.choice.companionReaction,
                                 isExit: choiceNode.data.choice.isExit,
@@ -497,7 +529,7 @@ const App = () => {
             });
         
             const updatedEdges = structuredClone(localEdgesArray);
-            setNodesAndEdges(updatedNodes, updatedEdges);
+            setNodesAndEdges(updatedNodes, updatedEdges); //update "real" arrays to permanently save changes
         };
         
         
@@ -520,7 +552,8 @@ const App = () => {
                 </tbody>
                 
                 </table>
-
+                
+                {/*dynamically create choice editors based on the number of choice nodes this NPC node has*/}
                 {currentChoices.map(choice => (
                     <div>
                         <ChoiceEditor 
@@ -542,15 +575,18 @@ const App = () => {
         )
     };
 
+    //this component is used as a subcomponent of the NodeEditor to edit the player choice nodes belonging to that NPC node
     const ChoiceEditor = ({data, onChoiceChange}) => {
         
-        const {choiceId, nextNodeID, playerResponse, companionReaction, dqc, dqt, isExit} = data.choice;
+        const {choiceId, nextNodeID, playerResponse, companionReaction, dqc, dqt, isExit} = data.choice; //define data contained in the node's choice field
         
+        //local copies of editable choice fields
         const [playerResponseField, setPlayerResponseField] = useState(playerResponse);
         const [companionReactionField, setCompanionReactionField] = useState(companionReaction);
         const [isExitField, setisExitField] = useState(isExit);
         const [nextNodeIdField, setNextNodeIdField] = useState(nextNodeID);
         
+        //update methods for each editable choice field 
 
         function handlePlayerResponseFieldChange(event) {
             const newPlayerResponse = event.target.value;
@@ -591,7 +627,7 @@ const App = () => {
                     </td>
                 </tr>
                 <tr>
-                    <td>Player response</td> {/* Display some property of the choice */}
+                    <td>Player response</td>
                     <td>
                         <input
                             style={{width:'95%'}}
@@ -602,7 +638,7 @@ const App = () => {
                     </td>
                 </tr>
                 <tr>
-                    <td>Companion reaction</td> {/* Display some property of the choice */}
+                    <td>Companion reaction</td>
                     <td>
                         <select
                             style={{width:'100%'}}
@@ -618,7 +654,7 @@ const App = () => {
                     </td>
                 </tr>
                 <tr>
-                    <td>isExit?</td> {/* Display some property of the choice */}
+                    <td>isExit?</td> 
                     <td>
                         <input 
                             type='checkbox'
@@ -631,6 +667,7 @@ const App = () => {
         );
     };
 
+    //the main app component. Contains title header bar, sidepanel with buttons for import/export and a button for creating new NPC nodes, as well as the actual reactflow container to display the trees
     return (
         <div className="app-container">
             <header className="header">

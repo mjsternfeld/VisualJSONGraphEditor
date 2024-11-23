@@ -70,8 +70,8 @@ html, body {
 }
 
 .react-flow__controls {
-    background-color: #333; /* Dark background for dark mode */
-    border-color: #555; /* Subtle border color for dark mode */
+    background-color: #333; 
+    border-color: #555; 
 }
 
 .react-flow__controls-button {
@@ -80,7 +80,7 @@ html, body {
 }
 
 .react-flow__controls-button:hover {
-    background-color: #444; /* Slightly darker background on hover */
+    background-color: #444; 
     color: #fff;
 }
 

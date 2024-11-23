@@ -6,12 +6,11 @@ function createWindow() {
         width: 800,
         height: 600,
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'), // Optional, for secure context
-            nodeIntegration: true, // Enable Node.js APIs in the renderer process
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true, 
         },
     });
 
-    // Load your React app's build file
     win.loadFile(path.join(__dirname, '..', 'build', 'index.html'));
 }
 

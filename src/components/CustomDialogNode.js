@@ -1,11 +1,18 @@
-// CustomDialogNode.js
-import React, {  useMemo, useEffect, useState, useRef, useCallback } from 'react';
+//This component is used to represent the NPC dialog nodes, 
+//i.e., a node containing an NPC line of dialog and pointers
+//to player responses to that NPC line.
+import React, {  useEffect, useState } from 'react';
 import { Handle, useUpdateNodeInternals } from '@xyflow/react';
 
 
 const CustomDialogNode = ({ data }) => {
     
     const { node, incomingChoices, outgoingChoices, selectedID } = data;
+    //node: the 
+    //incomingChoices: the list of player choices (dialog lines) that lead to this node as the NPC's response
+    //outgoingChoices: the list of player choices (dialog lines) the player can say to respond to this node (this NPC dialog line)
+    //selectedID: the ID of the currently selected DialogNode in format `node-${node.id}`, used for highlighting the selected nodes and its outgoing choices
+
     //console.log("NODE: " + JSON.stringify(node));
     //console.log("INCOMINGCHOICES: " + JSON.stringify(incomingChoices));
     //console.log("OUTGOINGCHOICES: " + JSON.stringify(node.choices));
@@ -13,7 +20,7 @@ const CustomDialogNode = ({ data }) => {
     
     const [dialog, setDialog] = useState(node.npcDialog);
 
-    const updateNodeInternals = useUpdateNodeInternals();
+    const updateNodeInternals = useUpdateNodeInternals(); //used by ReactFlow to consider changes in the data
 
     useEffect(() => {
         //call updateNodeInternals to refresh handles when data or id changes
@@ -22,7 +29,8 @@ const CustomDialogNode = ({ data }) => {
     }, [node, incomingChoices, updateNodeInternals]);
 
 
-    const isSelected = selectedID == `node-${node.id}`;
+    //check if this node is the currently selected one and highlight the node (and its choices) in red
+    const isSelected = selectedID == `node-${node.id}`; 
     //console.log("selectedID: " + selectedID + ", node.id: " + node.id + ", " + isSelected);
     const backgroundColor = isSelected ? 'rgb(255,0,0)' : 'rgb(0, 112, 0)';
 
